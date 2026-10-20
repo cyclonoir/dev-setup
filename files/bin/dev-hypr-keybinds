@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Managed by ~/dev-setup. Searchable list of Hyprland keybindings (like Omarchy's SUPER+K), shown in
+# Noctalia's launcher; picking an entry runs that bind. Only binds with a description (bindd) are listed.
+# Usage: dev-hypr-keybinds [--print]   (--print writes the list to stdout instead of opening the menu)
+set -euo pipefail
+
+# One row per described bind (fields split by \x1f, since read collapses empty tab fields): keys, description, dispatcher, arg, is-mouse-drag.
+rows=$(hyprctl binds -j | jq -r '
+  def bit($n): ((. / $n) | floor) % 2 == 1;
+  def mods: [
+    (if bit(64) then "SUPER" else empty end),
+    (if bit(1) then "SHIFT" else empty end),
+    (if bit(4) then "CTRL" else empty end),
+    (if bit(8) then "ALT" else empty end)
+  ] | join(" ");
+  def keyname: {"mouse:272": "LEFT MOUSE BUTTON", "mouse:273": "RIGHT MOUSE BUTTON"}[.] // (if startswith("XF86") then . else ascii_upcase end);
+  .[] | select(.has_description) |
+  [ ((.modmask | mods) as $m | (.key | keyname) as $k | if $m == "" then $k else "\($m) + \($k)" end),
+    .description, .dispatcher, .arg, (.mouse | tostring) ] | join("\u001f")')
+
+menu=$(awk -F'\x1f' '{ printf "%-30s → %s\n", $1, $2 }' <<<"$rows")
+
+if [[ "${1:-}" == --print ]]; then
+  printf '%s\n' "$menu"
+  exit 0
+fi
+
+choice=$(printf '%s\n' "$menu" | noctalia dmenu -p "Keybindings") || exit 0
+[[ -n "$choice" ]] || exit 0
+
+# Find the chosen row and run its action. Mouse-drag binds can't be triggered from a menu.
+line=$(grep -nxF -- "$choice" <<<"$menu" | head -n1 | cut -d: -f1)
+[[ -n "$line" ]] || exit 0
+IFS=$'\x1f' read -r _keys _desc dispatcher arg is_mouse < <(sed -n "${line}p" <<<"$rows")
+[[ "$is_mouse" == true ]] && exit 0
+
+if [[ -n "$arg" ]]; then
+  hyprctl dispatch "$dispatcher" "$arg" >/dev/null
+else
+  hyprctl dispatch "$dispatcher" >/dev/null
+fi

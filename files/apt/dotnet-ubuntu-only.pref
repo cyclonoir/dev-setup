@@ -1,0 +1,5 @@
+# Managed by ~/dev-setup (steps/10-base.sh).
+# Never install .NET from Microsoft's apt repo; .NET SDKs come from mise.
+Package: dotnet* aspnet* netstandard*
+Pin: origin "packages.microsoft.com"
+Pin-Priority: -10

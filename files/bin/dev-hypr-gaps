@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Managed by ~/dev-setup. Toggle window gaps and borders off; toggling back reloads the config values.
+set -euo pipefail
+
+state="${XDG_RUNTIME_DIR:-/tmp}/dev-hypr-gaps-off"
+
+if [[ -e "$state" ]]; then
+  rm -f "$state"
+  hyprctl reload >/dev/null
+else
+  touch "$state"
+  hyprctl --batch "keyword general:gaps_in 0; keyword general:gaps_out 0; keyword general:border_size 0" >/dev/null
+fi

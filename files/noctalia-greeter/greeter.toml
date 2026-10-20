@@ -1,0 +1,7 @@
+# Managed by ~/dev-setup (steps/80-greetd.sh).
+# AD (SSSD) users aren't in /etc/passwd, so the greeter's user list may not show them; pre-fill instead.
+[user]
+default = "@DEV_USER@"
+
+[session]
+default = "@SESSION@"

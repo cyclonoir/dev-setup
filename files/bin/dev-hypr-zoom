@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Managed by ~/dev-setup. Screen zoom around the cursor: `dev-hypr-zoom in` adds 1x, `dev-hypr-zoom reset`.
+set -euo pipefail
+
+case "${1:-}" in
+  in)
+    current=$(hyprctl getoption cursor:zoom_factor -j | jq -r '.float')
+    hyprctl keyword cursor:zoom_factor "$(awk -v z="$current" 'BEGIN { print z + 1 }')" >/dev/null
+    ;;
+  reset)
+    hyprctl keyword cursor:zoom_factor 1 >/dev/null
+    ;;
+  *)
+    echo "Usage: dev-hypr-zoom in|reset" >&2
+    exit 2
+    ;;
+esac

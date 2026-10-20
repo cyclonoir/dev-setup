@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Managed by ~/dev-setup. Pop the active window out (float, center, pin), or put it back in the tiling.
+set -euo pipefail
+
+win=$(hyprctl activewindow -j)
+[[ "$(jq -r '.address // empty' <<<"$win")" ]] || exit 0
+
+if [[ "$(jq -r '.floating' <<<"$win")" == true && "$(jq -r '.pinned' <<<"$win")" == true ]]; then
+  hyprctl --batch "dispatch pin; dispatch togglefloating" >/dev/null
+elif [[ "$(jq -r '.floating' <<<"$win")" == true ]]; then
+  hyprctl --batch "dispatch centerwindow; dispatch pin" >/dev/null
+else
+  hyprctl --batch "dispatch togglefloating; dispatch resizeactive exact 60% 60%; dispatch centerwindow; dispatch pin" >/dev/null
+fi
