@@ -3,7 +3,7 @@
 # package names and broken repo setup. The desktop session, greetd switching and KVM can't be
 # tested this way; use a VM or the laptop for those.
 #
-# Usage: tests/container-test.sh [steps]   (default: base,hyprland,browsers,noctalia,mise,podman,virt)
+# Usage: tests/container-test.sh [steps]   (default: base,fonts,hyprland,browsers,noctalia,mise,podman,virt)
 # Needs Docker or Podman; run with sudo if your user can't reach the Docker socket.
 # Console output and the container's install.log are saved under tests/logs/.
 
@@ -13,7 +13,7 @@ engine=${ENGINE:-$(command -v podman || command -v docker || true)}
 [[ -n "$engine" ]] || { echo "Docker or Podman is required." >&2; exit 1; }
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-steps=${1:-base,hyprland,browsers,noctalia,mise,podman,virt}
+steps=${1:-base,fonts,hyprland,browsers,noctalia,mise,podman,virt}
 stamp=$(date +%Y%m%d-%H%M%S)
 log_dir="$repo/tests/logs"
 owner="${SUDO_UID:-$(id -u)}:${SUDO_GID:-$(id -g)}"
@@ -24,6 +24,8 @@ set +e
   apt-get update -qq
   DEBIAN_FRONTEND=noninteractive apt-get install -y -qq sudo curl ca-certificates >/dev/null
   useradd -m -s /bin/bash adam.miller
+  # Mimic an AD (SSSD) account, which has no subuid/subgid ranges, so the podman step's fix runs.
+  sed -i '/^adam.miller:/d' /etc/subuid /etc/subgid
   echo 'adam.miller ALL=(ALL) NOPASSWD:ALL' >/etc/sudoers.d/container-test
   su - adam.miller -c 'cd /opt/dev-setup && ./install.sh --only $steps'
   first=\$?
