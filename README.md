@@ -34,7 +34,7 @@ Options: `--only a,b`, `--skip a,b`, `--with umbriel`, `--dry-run`, `--switch-dm
 | `noctalia` | Noctalia APT repo + `noctalia` |
 | `hypr-config` | `~/.config/hypr/dev-setup.conf`: the whole keymap (ported from Omarchy, shell actions via Noctalia; SUPER+K searches it), autostart, `DOTNET_ROOT`; helper scripts in `~/.local/bin`; `hyprland.conf` created without Hyprland's default binds, plus one `source =` line; power button opens Noctalia's session menu (logind drop-in, active after reboot) |
 | `mise` | mise, bash and nushell activation, `neovim node go dotnet@10`, `global.json` support |
-| `podman` | Podman + podman-compose; subuid/subgid range for the AD user (not added automatically for SSSD users) |
+| `podman` | Podman + podman-compose; subuid/subgid range for the AD user via `usermod` (SSSD users never get one from `useradd`) |
 | `virt` | QEMU/KVM, libvirt, virt-manager, OVMF, swtpm; `libvirt` + `kvm` groups via `gpasswd` |
 | `greetd` | greetd + Noctalia Greeter, pre-filled user/session, keyring PAM lines, passwordless theme sync; switches from GDM only with `--switch-dm` |
 | `umbriel` | Optional (`--with umbriel`): Umbriel as an extra session to trial |

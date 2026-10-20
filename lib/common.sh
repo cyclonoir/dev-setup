@@ -234,7 +234,8 @@ ensure_line() {
 
 user_in_group() { id -nG "$1" 2>/dev/null | tr ' ' '\n' | grep -xF "$2" >/dev/null; }
 
-# Add a user to a local group with gpasswd, which works for SSSD (AD) users where usermod doesn't.
+# Add a user to a local group. Works for SSSD (AD) users too: the user is looked up through SSSD and
+# only /etc/group changes.
 add_user_to_group() {
   local user=$1 group=$2
   if ! getent group "$group" >/dev/null; then
