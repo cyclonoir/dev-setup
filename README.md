@@ -36,7 +36,7 @@ Options: `--only a,b`, `--skip a,b`, `--with compliance,umbriel`, `--dry-run`, `
 | `browsers` | Vivaldi from its vendor's repo; on a work machine (`--with compliance`) also Microsoft Edge, which Intune/Conditional Access need |
 | `noctalia` | Noctalia APT repo + `noctalia` |
 | `hypr-config` | `~/.config/hypr/dev-setup.conf`: the whole keymap (ported from Omarchy, shell actions via Noctalia; SUPER+K searches it), autostart, `DOTNET_ROOT`; helper scripts in `~/.local/bin`; `hyprland.conf` created without Hyprland's default binds, plus one `source =` line; power button opens Noctalia's session menu (logind drop-in, active after reboot) |
-| `mise` | mise, bash activation, `neovim node go dotnet@10`, `global.json` support |
+| `mise` | mise, bash activation, `neovim node go dotnet@10 gh` (GitHub CLI), `global.json` support |
 | `claude` | Claude Code through mise (`claude@latest`: Anthropic's release binaries); update with `mise upgrade claude` |
 | `podman` | Podman + podman-compose; subuid/subgid range for the user via `usermod` if missing (AD/SSSD users never get one from `useradd`; local users already have one) |
 | `virt` | QEMU/KVM, libvirt, virt-manager, OVMF, swtpm; user added to `libvirt` + `kvm` |

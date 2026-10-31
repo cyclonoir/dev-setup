@@ -12,7 +12,7 @@ TERMINAL_PKG="foot"
 UBUNTU_VERSION_ID="26.04"
 UBUNTU_CODENAME="resolute"
 GREETER_SESSION="Hyprland"
-MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10)
+MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10 gh@latest)
 CLAUDE_CODE_TOOL="claude@latest"   # mise registry: aqua:anthropics/claude-code
 
 PKGS_BASE=(build-essential git curl ca-certificates gpg jq unzip ripgrep fd-find tmux btop)

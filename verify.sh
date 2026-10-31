@@ -44,7 +44,7 @@ check warn "hyprland.conf has no bind lines of its own" bash -c "! grep -qE '^[[
 
 section "mise"
 check fail "mise installed" test -x "$MISE"
-for tool in nvim node go dotnet; do
+for tool in nvim node go dotnet gh; do
   check fail "mise provides $tool" "$MISE" which "$tool"
 done
 check fail "bash activates mise" grep -qF "mise activate bash" "$HOME/.bashrc"
