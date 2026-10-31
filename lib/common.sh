@@ -6,7 +6,8 @@ set -euo pipefail
 
 # --- Constants (edit these for a different user or machine) ---------------------------------
 
-DEV_USER="adam.miller"
+# The account running the scripts, AD or local (they refuse to run as root). Override: DEV_USER=name
+DEV_USER="${DEV_USER:-$(id -un)}"
 TERMINAL_PKG="foot"
 UBUNTU_VERSION_ID="26.04"
 UBUNTU_CODENAME="resolute"
@@ -15,7 +16,8 @@ MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10)
 
 PKGS_BASE=(build-essential git curl ca-certificates gpg jq unzip ripgrep fd-find tmux btop)
 PKGS_HYPRLAND=(hyprland xdg-desktop-portal-hyprland hyprpolkitagent wl-clipboard brightnessctl "$TERMINAL_PKG")
-PKGS_BROWSERS=(vivaldi-stable microsoft-edge-stable)
+PKGS_BROWSERS=(vivaldi-stable)
+PKGS_WORK_BROWSERS=(microsoft-edge-stable)   # only with --with compliance (work laptop)
 PKGS_NOCTALIA=(noctalia)
 PKGS_PODMAN=(podman podman-compose uidmap)
 PKGS_VIRT=(qemu-system-x86 libvirt-daemon-system libvirt-clients virt-manager ovmf swtpm swtpm-tools cpu-checker)
@@ -55,6 +57,7 @@ NOTICES_FILE="$STATE_DIR/notices"
 
 DRY_RUN="${DRY_RUN:-0}"
 SWITCH_DM="${SWITCH_DM:-0}"
+WORK_MACHINE="${WORK_MACHINE:-0}"   # set by install.sh when the compliance step is selected
 
 mkdir -p "$STATE_DIR"
 
@@ -140,6 +143,17 @@ check() {
     _log FAIL "$desc"
     CHECK_FAIL=$((CHECK_FAIL + 1))
   fi
+}
+
+# IT's compliance baseline on a work machine: only ever checked, never changed. Missing items warn.
+# Used by the opt-in compliance step (--with compliance) and by verify.sh --compliance.
+check_it_baseline() {
+  check warn "Disk encrypted (LUKS)" bash -c 'lsblk -rno FSTYPE | grep -qx crypto_LUKS'
+  check warn "Domain joined (realm list)" bash -c 'realm list --name-only | grep -q .'
+  check warn "Sophos running (sophos-spl)" systemctl is-active --quiet sophos-spl
+  check warn "FortiClient installed" pkg_installed forticlient
+  check warn "Intune app installed" pkg_installed intune-portal
+  check warn "GNOME installed (fallback session for IT and FortiClient)" pkg_installed gnome-shell
 }
 
 # --- Packages -------------------------------------------------------------------------------

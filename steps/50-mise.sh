@@ -14,23 +14,6 @@ fi
 # --- Shell activation ---
 ensure_line "$HOME/.bashrc" "eval \"\$($MISE activate bash)\""
 
-if have nu; then
-  # shellcheck disable=SC2016  # literal nushell code
-  nu_dir=$(nu -c '$nu.default-config-dir')
-  if [[ -x "$MISE" ]]; then
-    tmp=$(mktemp)
-    "$MISE" activate nu >"$tmp"
-    install_file "$tmp" "$nu_dir/mise.nu" 0644
-    rm -f "$tmp"
-  else
-    run sh -c "$MISE activate nu > $nu_dir/mise.nu"
-  fi
-  # shellcheck disable=SC2016  # literal nushell code
-  ensure_line "$nu_dir/config.nu" 'use ($nu.default-config-dir | path join mise.nu)'
-else
-  notice "nushell isn't installed, so only bash got mise activation. Re-run --only mise after installing nu."
-fi
-
 # --- Global tools ---
 run "$MISE" use -g "${MISE_TOOLS[@]}"
 

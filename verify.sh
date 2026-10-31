@@ -1,16 +1,29 @@
 #!/usr/bin/env bash
 # Check the machine against the setup guide's checklist. Read-only.
 # Exit code is non-zero if any required check fails; "!!" items are warnings.
+# Usage: ./verify.sh [--compliance]   (--compliance adds IT's work-machine baseline checks)
 
 # shellcheck source=lib/common.sh
 source "$(dirname "$0")/lib/common.sh"
 
 section() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 
+compliance=0
+case "${1:-}" in
+  --compliance) compliance=1 ;;
+  "") ;;
+  *) echo "Usage: ./verify.sh [--compliance]" >&2; exit 2 ;;
+esac
+
 section "Packages"
 for p in "${PKGS_BASE[@]}" "${PKGS_HYPRLAND[@]}" "${PKGS_BROWSERS[@]}" "${PKGS_NOCTALIA[@]}" "${PKGS_PODMAN[@]}" "${PKGS_VIRT[@]}" "${PKGS_GREETD[@]}"; do
   check fail "installed: $p" pkg_installed "$p"
 done
+if ((compliance)); then
+  for p in "${PKGS_WORK_BROWSERS[@]}"; do
+    check fail "installed: $p (work laptop)" pkg_installed "$p"
+  done
+fi
 check fail ".NET pinned away from packages.microsoft.com" test -f /etc/apt/preferences.d/dotnet-ubuntu-only
 
 section "Fonts"
@@ -54,25 +67,27 @@ check fail "greetd PAM unlocks the keyring at login" grep -qE '^auth[[:space:]].
 check fail "greetd PAM starts the keyring" grep -qE '^session[[:space:]].*pam_gnome_keyring\.so' "$GREETD_PAM"
 check warn "greetd is the active login screen (switch with --switch-dm)" systemctl is-enabled --quiet greetd
 
-section "IT baseline (managed by IT)"
-check warn "Disk encrypted (LUKS)" bash -c 'lsblk -rno FSTYPE | grep -qx crypto_LUKS'
-check warn "Domain joined" bash -c 'realm list --name-only | grep -q .'
-check warn "Sophos running" systemctl is-active --quiet sophos-spl
-check warn "FortiClient installed" pkg_installed forticlient
-check warn "Intune app installed" pkg_installed intune-portal
+if ((compliance)); then
+  section "IT baseline (managed by IT)"
+  check_it_baseline
+fi
 
 section "Check these by hand"
 cat <<'EOF'
-  - Noctalia Greeter accepts your AD short name; Hyprland starts with the Noctalia bar
+  - Noctalia Greeter accepts your username; Hyprland starts with the Noctalia bar
   - Power button opens the session menu (after a reboot)
   - Launcher, control center, volume and brightness keys work (keymap: ~/.config/hypr/dev-setup.conf)
   - An admin password prompt appears for a privileged action (polkit)
   - Saved passwords persist across logins (keyring)
-  - Browser screen sharing works in a test Teams/Zoom call
-  - FortiClient VPN connects from the Hyprland session
-  - Intune app still shows Compliant
+  - Browser screen sharing works in a test video call
   - Windows VM has network and is reachable over RDP
 EOF
+if ((compliance)); then
+  cat <<'EOF'
+  - FortiClient VPN connects from the Hyprland session
+  - Intune app still shows Compliant
+EOF
+fi
 
 printf '\n%d passed, %d warnings, %d failed\n' "$CHECK_PASS" "$CHECK_WARN" "$CHECK_FAIL"
 ((CHECK_FAIL == 0))

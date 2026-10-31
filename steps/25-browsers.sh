@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Step: Vivaldi (main browser) and Microsoft Edge (work browser: Intune and Conditional Access on Linux
-# go through Edge). Each is bootstrapped from its vendor's apt repo; once installed, the vendor's package
-# maintains its own repo entry (Edge replaces ours with a repos/edge-stable entry), so repo setup is
-# skipped from then on to avoid configuring the same repo twice.
+# Step: Vivaldi (main browser), plus Microsoft Edge on a work machine (--with compliance): Intune and
+# Conditional Access on Linux go through Edge. Each is bootstrapped from its vendor's apt repo; once
+# installed, the vendor's package maintains its own repo entry (Edge replaces ours with a
+# repos/edge-stable entry), so repo setup is skipped from then on to avoid configuring a repo twice.
 
 # shellcheck source=../lib/common.sh
 source "$(dirname "$0")/../lib/common.sh"
@@ -34,12 +34,19 @@ if add_vendor_repo vivaldi-stable "$VIVALDI_KEY_URL" "$VIVALDI_KEYRING" "$VIVALD
   "deb [arch=amd64 signed-by=$VIVALDI_KEYRING] https://repo.vivaldi.com/archive/deb/ stable main"; then
   repos_added=1
 fi
-if add_vendor_repo microsoft-edge-stable "$EDGE_KEY_URL" "$EDGE_KEYRING" "$EDGE_LIST" \
-  "deb [arch=amd64 signed-by=$EDGE_KEYRING] https://packages.microsoft.com/repos/edge stable main"; then
-  repos_added=1
+if [[ "$WORK_MACHINE" == 1 ]]; then
+  if add_vendor_repo microsoft-edge-stable "$EDGE_KEY_URL" "$EDGE_KEYRING" "$EDGE_LIST" \
+    "deb [arch=amd64 signed-by=$EDGE_KEYRING] https://packages.microsoft.com/repos/edge stable main"; then
+    repos_added=1
+  fi
+else
+  ok "Edge skipped: work machines only (--with compliance)"
 fi
 if ((repos_added)); then
   apt_update
 fi
 
 apt_install "${PKGS_BROWSERS[@]}"
+if [[ "$WORK_MACHINE" == 1 ]]; then
+  apt_install "${PKGS_WORK_BROWSERS[@]}"
+fi

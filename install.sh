@@ -1,12 +1,18 @@
 #!/usr/bin/env bash
-# Configure a new Ubuntu 26.04 developer machine on top of IT's compliance baseline.
+# Configure an Ubuntu 26.04 developer machine, work or personal. On a work machine it sits on top of
+# IT's compliance baseline, which --with compliance checks (read-only).
 # Safe to re-run: every step checks before it changes anything.
 
 # shellcheck source=lib/common.sh
 source "$(dirname "$0")/lib/common.sh"
 
-DEFAULT_STEPS=(preflight base fonts hyprland browsers noctalia hypr-config mise podman virt greetd)
-OPTIONAL_STEPS=(umbriel)
+# Every step in run order. Optional steps only run when named with --with (or --only).
+ALL_STEPS=(preflight compliance base fonts hyprland browsers noctalia hypr-config mise podman virt greetd umbriel)
+OPTIONAL_STEPS=(compliance umbriel)
+default_steps=()
+for s in "${ALL_STEPS[@]}"; do
+  [[ " ${OPTIONAL_STEPS[*]} " == *" $s "* ]] || default_steps+=("$s")
+done
 
 usage() {
   cat <<EOF
@@ -15,12 +21,14 @@ Usage: ./install.sh [options]
 Options:
   --only STEP[,STEP...]   Run only these steps (preflight still runs unless skipped)
   --skip STEP[,STEP...]   Skip these steps
-  --with STEP[,STEP...]   Also run optional steps: ${OPTIONAL_STEPS[*]}
+  --with STEP[,STEP...]   Also run optional steps: compliance (work machine: check IT's
+                          baseline, read-only, and install Edge), umbriel (extra login
+                          session to trial)
   --dry-run               Print commands instead of running them
   --switch-dm             Let the greetd step replace GDM as the login screen (takes effect on reboot)
   -h, --help              Show this help
 
-Default steps: ${DEFAULT_STEPS[*]}
+Default steps: ${default_steps[*]}
 EOF
 }
 
@@ -47,33 +55,35 @@ contains() {
   return 1
 }
 
+is_optional() { contains "$1" "${OPTIONAL_STEPS[@]}"; }
+
 step_file() {
   local matches=("$DEV_SETUP_ROOT"/steps/*-"$1".sh)
   [[ -f "${matches[0]}" ]] || die "Unknown step: $1"
   printf '%s\n' "${matches[0]}"
 }
 
-# Work out which steps to run, in canonical order.
+# Work out which steps to run, in run order.
 steps=()
-if ((${#only[@]})); then
-  for s in "${only[@]}"; do step_file "$s" >/dev/null; done
-  contains preflight "${skip[@]}" || steps+=(preflight)
-  for s in "${DEFAULT_STEPS[@]}" "${OPTIONAL_STEPS[@]}"; do
-    [[ "$s" == preflight ]] && continue
-    contains "$s" "${only[@]}" && steps+=("$s")
-  done
-else
-  for s in "${with[@]}"; do step_file "$s" >/dev/null; done
-  for s in "${DEFAULT_STEPS[@]}" "${OPTIONAL_STEPS[@]}"; do
-    contains "$s" "${skip[@]}" && continue
-    if contains "$s" "${OPTIONAL_STEPS[@]}" && ! contains "$s" "${with[@]}"; then continue; fi
-    steps+=("$s")
-  done
-fi
+for s in "${only[@]}" "${with[@]}"; do step_file "$s" >/dev/null; done
+for s in "${ALL_STEPS[@]}"; do
+  contains "$s" "${skip[@]}" && continue
+  if ((${#only[@]})); then
+    [[ "$s" == preflight ]] || contains "$s" "${only[@]}" "${with[@]}" || continue
+  elif is_optional "$s"; then
+    contains "$s" "${with[@]}" || continue
+  fi
+  steps+=("$s")
+done
+
+# The compliance option marks a work machine, which also gets Edge (browsers step).
+WORK_MACHINE=0
+if contains compliance "${steps[@]}"; then WORK_MACHINE=1; fi
+export WORK_MACHINE
 
 require_not_root
 rm -f "$NOTICES_FILE"
-_log INFO "=== install.sh start: steps=${steps[*]} dry_run=$DRY_RUN switch_dm=$SWITCH_DM ==="
+_log INFO "=== install.sh start: steps=${steps[*]} dry_run=$DRY_RUN switch_dm=$SWITCH_DM work_machine=$WORK_MACHINE ==="
 
 # Ask for the sudo password once and keep the timestamp fresh while steps run.
 if ! is_dry_run; then
