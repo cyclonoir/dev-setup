@@ -48,6 +48,7 @@ for tool in nvim node go dotnet; do
   check fail "mise provides $tool" "$MISE" which "$tool"
 done
 check fail "bash activates mise" grep -qF "mise activate bash" "$HOME/.bashrc"
+check fail "mise provides claude (Claude Code)" "$MISE" which claude
 
 section "Podman (rootless)"
 check fail "/etc/subuid range for $DEV_USER" grep -q "^${DEV_USER}:" /etc/subuid

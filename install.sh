@@ -7,7 +7,7 @@
 source "$(dirname "$0")/lib/common.sh"
 
 # Every step in run order. Optional steps only run when named with --with (or --only).
-ALL_STEPS=(preflight compliance base fonts hyprland browsers noctalia hypr-config mise podman virt greetd umbriel)
+ALL_STEPS=(preflight compliance base fonts hyprland browsers noctalia hypr-config mise claude podman virt greetd umbriel)
 OPTIONAL_STEPS=(compliance umbriel)
 default_steps=()
 for s in "${ALL_STEPS[@]}"; do

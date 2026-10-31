@@ -37,6 +37,7 @@ Options: `--only a,b`, `--skip a,b`, `--with compliance,umbriel`, `--dry-run`, `
 | `noctalia` | Noctalia APT repo + `noctalia` |
 | `hypr-config` | `~/.config/hypr/dev-setup.conf`: the whole keymap (ported from Omarchy, shell actions via Noctalia; SUPER+K searches it), autostart, `DOTNET_ROOT`; helper scripts in `~/.local/bin`; `hyprland.conf` created without Hyprland's default binds, plus one `source =` line; power button opens Noctalia's session menu (logind drop-in, active after reboot) |
 | `mise` | mise, bash activation, `neovim node go dotnet@10`, `global.json` support |
+| `claude` | Claude Code through mise (`claude@latest`: Anthropic's release binaries); update with `mise upgrade claude` |
 | `podman` | Podman + podman-compose; subuid/subgid range for the user via `usermod` if missing (AD/SSSD users never get one from `useradd`; local users already have one) |
 | `virt` | QEMU/KVM, libvirt, virt-manager, OVMF, swtpm; user added to `libvirt` + `kvm` |
 | `greetd` | greetd + Noctalia Greeter, pre-filled user/session, keyring PAM lines, passwordless theme sync; switches from GDM only with `--switch-dm` |
@@ -65,4 +66,5 @@ Intune compliance.
 
 - Hyprland config uses `hyprland.conf` syntax for Ubuntu's Hyprland 0.53. Upstream moved to Lua in
   0.55; translate snippets from newer docs, and skip features newer than 0.53.
-- mise-installed tools (including .NET) don't get Ubuntu's automatic security updates: run `mise upgrade`.
+- mise-installed tools (including .NET and Claude Code) don't get Ubuntu's automatic security updates: run
+  `mise upgrade`, and `mise prune` to remove old versions.
