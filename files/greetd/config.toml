@@ -1,7 +1,0 @@
-# Managed by ~/dev-setup (steps/80-greetd.sh).
-[terminal]
-vt = @VT@
-
-[default_session]
-command = "@GREETER_CMD@"
-user = "@GREETER_USER@"

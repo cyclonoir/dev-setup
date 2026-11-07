@@ -1,25 +1,26 @@
 #!/usr/bin/env bash
 # Check the machine against the setup guide's checklist. Read-only.
 # Exit code is non-zero if any required check fails; "!!" items are warnings.
-# Usage: ./verify.sh [--compliance]   (--compliance adds IT's work-machine baseline checks)
+# Usage: ./verify.sh [--work]   (--work adds Edge and IT's work-machine baseline checks)
 
 # shellcheck source=lib/common.sh
 source "$(dirname "$0")/lib/common.sh"
 
 section() { printf '\n\033[1m%s\033[0m\n' "$*"; }
+not() { ! "$@"; }   # for checks that pass when a command fails
 
-compliance=0
+WORK_MACHINE=0   # only --work sets it, as in install.sh
 case "${1:-}" in
-  --compliance) compliance=1 ;;
+  --work) WORK_MACHINE=1 ;;
   "") ;;
-  *) echo "Usage: ./verify.sh [--compliance]" >&2; exit 2 ;;
+  *) echo "Usage: ./verify.sh [--work]" >&2; exit 2 ;;
 esac
 
 section "Packages"
 for p in "${PKGS_BASE[@]}" "${PKGS_HYPRLAND[@]}" "${PKGS_BROWSERS[@]}" "${PKGS_NOCTALIA[@]}" "${PKGS_PODMAN[@]}" "${PKGS_VIRT[@]}" "${PKGS_GREETD[@]}"; do
   check fail "installed: $p" pkg_installed "$p"
 done
-if ((compliance)); then
+if [[ "$WORK_MACHINE" == 1 ]]; then
   for p in "${PKGS_WORK_BROWSERS[@]}"; do
     check fail "installed: $p (work laptop)" pkg_installed "$p"
   done
@@ -28,7 +29,7 @@ check fail ".NET pinned away from packages.microsoft.com" test -f /etc/apt/prefe
 
 section "Fonts"
 for family in "${NERD_FONTS[@]}"; do
-  check fail "font installed: $family" bash -c "fc-list : family | grep -qF \"$family\""
+  check fail "font installed: $family" font_installed "$family"
 done
 check fail "monospace resolves to JetBrainsMono Nerd Font" bash -c 'fc-match monospace | grep -qF "JetBrainsMono Nerd Font"'
 
@@ -40,35 +41,47 @@ check fail "power button left to the desktop (logind HandlePowerKey=ignore)" gre
 for helper in "${HYPR_HELPERS[@]}"; do
   check fail "helper installed: $helper" test -x "$HOME/.local/bin/$helper"
 done
-check warn "hyprland.conf has no bind lines of its own" bash -c "! grep -qE '^[[:space:]]*bind[a-z]*[[:space:]]*=' \"$HYPR_DIR/hyprland.conf\""
+check warn "hyprland.conf has no bind lines of its own (dev-setup.conf defines the whole keymap)" not grep -qE "$HYPR_BIND_PATTERN" "$HYPR_DIR/hyprland.conf"
 
 section "mise"
 check fail "mise installed" test -x "$MISE"
-for tool in nvim node go dotnet gh; do
-  check fail "mise provides $tool" "$MISE" which "$tool"
+for tool in "${MISE_TOOLS[@]%%@*}"; do
+  check fail "mise provides $tool" "$MISE" where "$tool"   # tool names, not commands (neovim, not nvim)
 done
 check fail "bash activates mise" grep -qF "mise activate bash" "$HOME/.bashrc"
-check fail "mise provides claude (Claude Code)" "$MISE" which claude
 
 section "Podman (rootless)"
-check fail "/etc/subuid range for $DEV_USER" grep -q "^${DEV_USER}:" /etc/subuid
-check fail "/etc/subgid range for $DEV_USER" grep -q "^${DEV_USER}:" /etc/subgid
+check fail "/etc/subuid range for $DEV_USER" subid_has_range /etc/subuid
+check fail "/etc/subgid range for $DEV_USER" subid_has_range /etc/subgid
 # shellcheck disable=SC2016  # expanded by the inner bash
 check fail "podman runs rootless" bash -c '[[ "$(podman info --format "{{.Host.Security.Rootless}}")" == true ]]'
 
 section "Virtualization"
-check fail "KVM acceleration available" kvm-ok
+check fail "KVM acceleration available (else turn on AMD-V/SVM in the BIOS)" kvm-ok
 check fail "$DEV_USER in libvirt group" user_in_group "$DEV_USER" libvirt
 check fail "$DEV_USER in kvm group" user_in_group "$DEV_USER" kvm
 
 section "Login screen"
+check fail "greetd reads $GREETD_CONF (noctalia-greeter's drop-in)" \
+  bash -c "systemctl cat greetd.service | grep -F -- '--config $GREETD_CONF' >/dev/null"
 check fail "greetd starts noctalia-greeter" grep -q noctalia-greeter-session "$GREETD_CONF"
 check fail "greeter pre-fills $DEV_USER" grep -qF "default = \"$DEV_USER\"" "$GREETER_CONF"
-check fail "greetd PAM unlocks the keyring at login" grep -qE '^auth[[:space:]].*pam_gnome_keyring\.so' "$GREETD_PAM"
-check fail "greetd PAM starts the keyring" grep -qE '^session[[:space:]].*pam_gnome_keyring\.so' "$GREETD_PAM"
-check warn "greetd is the active login screen (switch with --switch-dm)" systemctl is-enabled --quiet greetd
+check warn "greeter lists the $GREETER_SESSION session (else fix GREETER_SESSION in lib/common.sh)" \
+  bash -c "noctalia-greeter sessions 2>/dev/null | grep -qF '$GREETER_SESSION'"
+check fail "greetd PAM unlocks the keyring at login" grep -qE "$KEYRING_AUTH_PATTERN" "$GREETD_PAM"
+check fail "greetd PAM starts the keyring" grep -qE "$KEYRING_SESSION_PATTERN" "$GREETD_PAM"
+check warn "greetd is the active login screen (switch with --switch-dm)" test "$(active_display_manager)" = greetd.service
 
-if ((compliance)); then
+# Only on machines where the fingerprint step ran, i.e. sudo has the pam_fprintd line it adds.
+# (Not "libpam-fprintd is installed": stock Ubuntu desktop pulls that package in on its own.)
+if grep -qsE "$FPRINT_PAM_PATTERN" /etc/pam.d/sudo; then
+  section "Fingerprint"
+  check warn "admin prompts (polkit) accept fingerprints" grep -qsE "$FPRINT_PAM_PATTERN" /etc/pam.d/polkit-1
+  check fail "fingerprint kept out of the shared login stack (common-auth)" not grep -qsE "$FPRINT_PAM_PATTERN" /etc/pam.d/common-auth
+  check warn "a finger is enrolled for $DEV_USER" bash -c "fprintd-list '$DEV_USER' 2>/dev/null | grep -qE '$FPRINT_ENROLLED_PATTERN'"
+fi
+
+if [[ "$WORK_MACHINE" == 1 ]]; then
   section "IT baseline (managed by IT)"
   check_it_baseline
 fi
@@ -82,8 +95,9 @@ cat <<'EOF'
   - Saved passwords persist across logins (keyring)
   - Browser screen sharing works in a test video call
   - Windows VM has network and is reachable over RDP
+  - With --with fingerprint: a finger unlocks the lock screen and approves sudo
 EOF
-if ((compliance)); then
+if [[ "$WORK_MACHINE" == 1 ]]; then
   cat <<'EOF'
   - FortiClient VPN connects from the Hyprland session
   - Intune app still shows Compliant
