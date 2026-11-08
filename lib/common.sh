@@ -15,6 +15,14 @@ UBUNTU_CODENAME="resolute"
 GREETER_SESSION="Hyprland"
 # claude = Claude Code (aqua:anthropics/claude-code release binaries)
 MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10 gh@latest claude@latest)
+# Theme step: the Noctalia palette (a community palette: https://api.noctalia.dev/palettes; Everforest
+# matches Omarchy's) and the app templates Noctalia renders it into. Built-in template IDs:
+# `noctalia theme --list-templates`; community IDs: github.com/noctalia-dev/community-templates.
+# gtk3 and gtk4 share one hook that fails unless both are rendered: keep both or neither.
+# Neovim doesn't use a template: files/nvim/noctalia-theme.lua maps each palette to a real colorscheme.
+NOCTALIA_PALETTE="Everforest"
+NOCTALIA_BUILTIN_TEMPLATES=(foot hyprland gtk3 gtk4 btop)
+NOCTALIA_COMMUNITY_TEMPLATES=(tmux claude-code)
 
 PKGS_BASE=(build-essential git curl ca-certificates gpg jq unzip ripgrep fd-find tmux btop)
 PKGS_HYPRLAND=(hyprland xdg-desktop-portal-hyprland hyprpolkitagent wl-clipboard brightnessctl "$TERMINAL_PKG")
@@ -56,6 +64,16 @@ LOGIND_POWER_KEY_CONF="/etc/systemd/logind.conf.d/10-dev-setup-power-key.conf"
 HYPR_DIR="$HOME/.config/hypr"
 HYPR_MANAGED_CONF="$HYPR_DIR/dev-setup.conf"
 HYPR_BIND_PATTERN='^[[:space:]]*bind[a-z]*[[:space:]]*='   # a keybinding line in a Hyprland config
+# Noctalia merges every *.toml in its config folder in name order, later files winning: the 00- prefix
+# lets your own config.toml (or any other file there) override this one.
+NOCTALIA_MANAGED_CONF="$HOME/.config/noctalia/00-dev-setup.toml"
+FOOT_CONF="$HOME/.config/foot/foot.ini"
+BTOP_CONF="$HOME/.config/btop/btop.conf"
+# Run by Noctalia's hooks: records the palette for Neovim, whose theme spec lives in its plugins folder
+# (a lazy.nvim config that imports lua/plugins, as LazyVim's starter does).
+THEME_HELPER="$HOME/.local/bin/dev-theme-sync"
+NVIM_PLUGINS_DIR="$HOME/.config/nvim/lua/plugins"
+NVIM_THEME_SPEC="$NVIM_PLUGINS_DIR/noctalia-theme.lua"
 # noctalia-greeter ships this greetd config and points greetd.service at it with a drop-in, so
 # /etc/greetd/config.toml is never read.
 GREETD_CONF="/etc/greetd/noctalia-greeter.toml"
@@ -70,6 +88,7 @@ DEV_SETUP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FILES_DIR="$DEV_SETUP_ROOT/files"
 STATE_DIR="${XDG_STATE_HOME:-$HOME/.local/state}/dev-setup"
 LOG_FILE="$STATE_DIR/install.log"
+PALETTE_STATE_FILE="$STATE_DIR/palette"   # written by dev-theme-sync; Neovim watches it
 
 # install.sh exports these to the steps; it sets SWITCH_DM and WORK_MACHINE only from its options.
 DRY_RUN="${DRY_RUN:-0}"
@@ -337,6 +356,37 @@ ensure_line() {
   printf '%s\n' "$line" >>"$file"
   _log RUN "append to $file: $line"
   ok "added to $file: $line"
+}
+
+# True if Noctalia accepts config FILE with no warnings, printing its diagnostics otherwise.
+# `noctalia config validate` exits 0 for unknown keys and invalid values (it only warns about
+# them, and Noctalia then ignores them), so the exit code alone would let a typo through.
+noctalia_config_clean() {
+  local out
+  if ! out=$(noctalia config validate "$1" 2>&1) || grep -qE '^WARN|[1-9][0-9]* warning' <<<"$out"; then
+    printf '%s\n' "$out" >&2
+    return 1
+  fi
+}
+
+# Omarchy's Neovim theme files, in a config copied over from Omarchy: theme.lua (a link to the current
+# Omarchy theme's spec, missing here) and the plugin that reloads it, which would fight noctalia-theme.lua.
+omarchy_nvim_leftovers() {
+  local f found=()
+  for f in theme.lua omarchy-theme-hotreload.lua; do
+    if [[ -e "$NVIM_PLUGINS_DIR/$f" || -L "$NVIM_PLUGINS_DIR/$f" ]]; then found+=("$f"); fi
+  done
+  ((${#found[@]})) && printf '%s\n' "${found[@]}"
+}
+
+# The tmux config that tmux, and Noctalia's tmux template, use: ~/.tmux.conf if it exists, else the
+# XDG one.
+tmux_conf_file() {
+  if [[ -f "$HOME/.tmux.conf" ]]; then
+    printf '%s\n' "$HOME/.tmux.conf"
+  else
+    printf '%s\n' "$HOME/.config/tmux/tmux.conf"
+  fi
 }
 
 # Add LINE before or after the first exact ANCHOR line of a PAM file, unless a line matching

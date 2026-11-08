@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Record Noctalia's current palette and light/dark mode in ~/.local/state/dev-setup/palette: the
+# palette name on the first line, "dark" or "light" on the second. Neovim watches that file and
+# switches to the matching colorscheme (~/.config/nvim/lua/plugins/noctalia-theme.lua).
+# Noctalia runs this from its started, colors_changed and theme_mode_changed hooks
+# (~/.config/noctalia/00-dev-setup.toml). Safe to run by hand. Installed by ~/dev-setup.
+
+set -euo pipefail
+
+state="${XDG_STATE_HOME:-$HOME/.local/state}/dev-setup/palette"
+
+scheme=$(noctalia msg color-scheme-get)                     # "<source> <name>", e.g. "community Rose Pine Moon"
+mode=${NOCTALIA_THEME_MODE:-$(noctalia msg theme-mode-get)} # set by the theme_mode_changed hook
+name=${scheme#* }
+if [[ ! "$scheme" =~ ^(builtin|wallpaper|community|custom)\ . || ! "$mode" =~ ^(dark|light)$ ]]; then
+  echo "dev-theme-sync: unexpected answer from noctalia: '$scheme', '$mode'" >&2
+  exit 1
+fi
+
+new="$name"$'\n'"$mode"
+if [[ -f "$state" && "$(<"$state")" == "$new" ]]; then
+  exit 0
+fi
+mkdir -p "${state%/*}"
+tmp=$(mktemp "$state.XXXXXX")
+printf '%s\n' "$new" >"$tmp"
+mv -f "$tmp" "$state" # a rename, so Neovim never reads a half-written file

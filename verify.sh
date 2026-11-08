@@ -43,6 +43,25 @@ for helper in "${HYPR_HELPERS[@]}"; do
 done
 check warn "hyprland.conf has no bind lines of its own (dev-setup.conf defines the whole keymap)" not grep -qE "$HYPR_BIND_PATTERN" "$HYPR_DIR/hyprland.conf"
 
+section "Theme (Noctalia palette and app templates)"
+check fail "managed config exists: $NOCTALIA_MANAGED_CONF" test -f "$NOCTALIA_MANAGED_CONF"
+check fail "Noctalia accepts the managed config without warnings" noctalia_config_clean "$NOCTALIA_MANAGED_CONF"
+for f in "$FOOT_CONF" "$BTOP_CONF" "$(tmux_conf_file)"; do
+  check fail "config exists for its template: $f" test -f "$f"
+done
+# Written by Noctalia when it applies the templates (at its first start), not by install.sh.
+later="(Noctalia writes this when it runs)"
+check warn "foot.ini includes the theme $later" grep -q 'include.*noctalia' "$FOOT_CONF"
+check warn "hyprland.conf sources the border colors $later" grep -qE 'source[[:space:]]*=.*noctalia\.conf' "$HYPR_DIR/hyprland.conf"
+check warn "GTK 4 apps import the colors $later" grep -qF noctalia.css "$HOME/.config/gtk-4.0/gtk.css"
+check warn "btop theme rendered $later" test -f "$HOME/.config/btop/themes/noctalia.theme"
+check warn "tmux config sources the theme $later" grep -qF tmux/themes/noctalia.conf "$(tmux_conf_file)"
+check warn "Claude Code theme rendered $later" test -f "$HOME/.claude/themes/noctalia.json"
+check fail "helper installed: ${THEME_HELPER##*/}" test -x "$THEME_HELPER"
+check warn "palette recorded for Neovim $later" test -s "$PALETTE_STATE_FILE"
+check warn "Neovim follows the palette (needs a lazy.nvim config, then ./install.sh --only theme)" test -f "$NVIM_THEME_SPEC"
+check warn "no Omarchy theme files left in $NVIM_PLUGINS_DIR" not omarchy_nvim_leftovers
+
 section "mise"
 check fail "mise installed" test -x "$MISE"
 for tool in "${MISE_TOOLS[@]%%@*}"; do
@@ -91,6 +110,8 @@ cat <<'EOF'
   - Noctalia Greeter accepts your username; Hyprland starts with the Noctalia bar
   - Power button opens the session menu (after a reboot)
   - Launcher, control center, volume and brightness keys work (keymap: ~/.config/hypr/dev-setup.conf)
+  - foot, tmux, btop, Nautilus, Neovim and window borders follow Noctalia's palette
+  - Claude Code uses the Noctalia theme (choose it once in /theme)
   - An admin password prompt appears for a privileged action (polkit)
   - Saved passwords persist across logins (keyring)
   - Browser screen sharing works in a test video call

@@ -1,0 +1,24 @@
+# Managed by ~/dev-setup (steps/45-theme.sh). Re-running the step overwrites this file; change the
+# palette or templates in lib/common.sh, or override them in config.toml (it loads after this file).
+# Choices made in Noctalia's Settings window are saved to ~/.local/state/noctalia/settings.toml,
+# which overrides both.
+
+[theme]
+source = "community"
+community_palette = "@PALETTE@"
+
+# Noctalia renders the palette into these apps' configs whenever it changes, and adds the include
+# line each app needs on its first render.
+[theme.templates]
+enable_builtin_templates = true
+builtin_ids = [@BUILTIN_IDS@]
+enable_community_templates = true
+community_ids = [@COMMUNITY_IDS@]
+
+# Records the palette and mode for Neovim, which switches to the matching colorscheme
+# (~/.config/nvim/lua/plugins/noctalia-theme.lua). A hook with the same name in config.toml
+# replaces these, so add this command there too.
+[hooks]
+started = "@THEME_HELPER@"
+colors_changed = "@THEME_HELPER@"
+theme_mode_changed = "@THEME_HELPER@"
