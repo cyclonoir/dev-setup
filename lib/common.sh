@@ -13,8 +13,9 @@ TERMINAL_PKG="foot"
 UBUNTU_VERSION_ID="26.04"
 UBUNTU_CODENAME="resolute"
 GREETER_SESSION="Hyprland"
-# claude = Claude Code (aqua:anthropics/claude-code release binaries)
-MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10 gh@latest claude@latest)
+# claude = Claude Code (aqua:anthropics/claude-code release binaries). tree-sitter is the CLI LazyVim's
+# nvim-treesitter needs (Ubuntu's is too old); dotnet:csharpier is the C# formatter, a .NET tool.
+MISE_TOOLS=(neovim@latest node@lts go@latest dotnet@10 gh@latest claude@latest chezmoi@latest tree-sitter@latest dotnet:csharpier@latest uv@latest atuin@latest vivid@latest)
 # Theme step: the Noctalia palette (a community palette: https://api.noctalia.dev/palettes; Everforest
 # matches Omarchy's) and the app templates Noctalia renders it into. Built-in template IDs:
 # `noctalia theme --list-templates`; community IDs: github.com/noctalia-dev/community-templates.
@@ -24,7 +25,13 @@ NOCTALIA_PALETTE="Everforest"
 NOCTALIA_BUILTIN_TEMPLATES=(foot hyprland gtk3 gtk4 btop)
 NOCTALIA_COMMUNITY_TEMPLATES=(tmux claude-code)
 
-PKGS_BASE=(build-essential git curl ca-certificates gpg jq unzip ripgrep fd-find tmux btop)
+# git-delta is the pager your gitconfig names (delta); git-lfs and lazygit are used by git and Neovim.
+# libicu78 is the ICU library mise's .NET needs (dotnet aborts without it; minimal installs lack it).
+PKGS_BASE=(build-essential git git-lfs git-delta lazygit libicu78 curl ca-certificates gpg jq unzip ripgrep fd-find tmux btop)
+# The tools your fish config sets up or calls (7zip for zipdir). atuin and vivid come from mise instead:
+# Ubuntu's atuin uses `bind -k`, which fish 4 removed, and its vivid lacks the ansi theme.
+PKGS_SHELL=(fish starship zoxide eza bat fzf 7zip)
+PKGS_SHELL_AD=(sssd-tools)   # sss_override, which sets an AD (SSSD) account's login shell
 PKGS_HYPRLAND=(hyprland xdg-desktop-portal-hyprland hyprpolkitagent wl-clipboard brightnessctl "$TERMINAL_PKG")
 PKGS_BROWSERS=(vivaldi-stable)
 PKGS_WORK_BROWSERS=(microsoft-edge-stable)   # only with --work (work laptop)
@@ -59,6 +66,9 @@ FONTS_DIR="$HOME/.local/share/fonts"
 
 MISE="$HOME/.local/bin/mise"
 MISE_INSTALLER_URL="https://mise.run"
+# fish loads conf.d before config.fish, so this file sets up mise and starship and config.fish stays yours.
+FISH_DROPIN="$HOME/.config/fish/conf.d/dev-setup.fish"
+LOGIN_SHELL="/usr/bin/fish"
 HYPR_HELPERS=(dev-hypr-keybinds dev-hypr-pop dev-hypr-gaps dev-hypr-zoom)
 LOGIND_POWER_KEY_CONF="/etc/systemd/logind.conf.d/10-dev-setup-power-key.conf"
 HYPR_DIR="$HOME/.config/hypr"
@@ -417,6 +427,9 @@ pam_insert() {
 # --- Users and groups -----------------------------------------------------------------------
 
 user_in_group() { id -nG "$1" 2>/dev/null | tr ' ' '\n' | grep -xF "$2" >/dev/null; }
+
+# DEV_USER's login shell as the system resolves it: /etc/passwd for a local account, SSSD for AD.
+login_shell() { getent passwd "$DEV_USER" | cut -d: -f7; }
 
 # True if a subuid/subgid FILE has a range for DEV_USER: exact match on the user's name or numeric ID
 # (both forms are valid in these files). Usage: subid_has_range FILE

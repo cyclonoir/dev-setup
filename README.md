@@ -31,14 +31,15 @@ Options: `--only a,b`, `--skip a,b`, `--with fingerprint,umbriel`, `--work`, `--
 | Step | What it does |
 | --- | --- |
 | `preflight` | Ubuntu 26.04, installs curl; with `--work`, warns about missing IT baseline items (LUKS, AD join, Sophos, FortiClient, Intune, GNOME fallback), never changing them |
-| `base` | Build tools, git, ripgrep, fd (`fd` link), tmux, btop; apt pin keeping Microsoft's .NET packages out |
+| `base` | Build tools, git, git-lfs, delta (git's pager), lazygit, ripgrep, fd (`fd` link), tmux, btop; apt pin keeping Microsoft's .NET packages out |
 | `fonts` | JetBrainsMono Nerd Font + Symbols Nerd Font (nerd-fonts releases) in `~/.local/share/fonts`; fontconfig rule making it the default monospace (foot picks it up) |
 | `hyprland` | Hyprland 0.53, portal (screen sharing), polkit agent, wl-clipboard, brightnessctl, foot |
 | `browsers` | Vivaldi from its vendor's repo; on a work machine (`--work`) also Microsoft Edge, which Intune/Conditional Access need |
 | `noctalia` | Noctalia APT repo + `noctalia` |
 | `hypr-config` | `~/.config/hypr/dev-setup.conf`: the whole keymap (ported from Omarchy, shell actions via Noctalia; SUPER+K searches it), autostart, `DOTNET_ROOT`; helper scripts in `~/.local/bin`; `hyprland.conf` created without Hyprland's default binds, plus one `source =` line; power button opens Noctalia's session menu (logind drop-in, active after reboot) |
 | `theme` | Noctalia palette (Everforest, from its community catalog) and the apps it themes, in `~/.config/noctalia/00-dev-setup.toml`: built-in templates for foot, Hyprland borders, GTK 3/4 and btop; community templates for tmux and Claude Code. Creates `foot.ini`, `btop.conf` and a tmux config if missing, since Noctalia only adds its theme lines to configs that exist. Neovim switches to a real colorscheme per palette (Everforest, Gruvbox, Gruvbox Material, Catppuccin, Rosé Pine, each in the matching variant): a Noctalia hook runs `~/.local/bin/dev-theme-sync`, and `~/.config/nvim/lua/plugins/noctalia-theme.lua` applies the match (installed once your lazy.nvim config exists) |
-| `mise` | mise, bash activation, `neovim node go dotnet@10 gh` (GitHub CLI), Claude Code (`claude@latest`: Anthropic's release binaries; update with `mise upgrade claude`), `global.json` support |
+| `mise` | mise, bash activation, `neovim node go dotnet@10 gh` (GitHub CLI), Claude Code (`claude@latest`: Anthropic's release binaries; update with `mise upgrade claude`), chezmoi, tree-sitter CLI (nvim-treesitter needs a newer one than Ubuntu's), CSharpier (`dotnet:csharpier`, a .NET tool), uv, atuin and vivid (Ubuntu's are too old for fish 4 and the `ansi` theme), `global.json` support |
+| `shell` | fish, starship, and the tools the fish config uses: zoxide, eza, bat (`bat` link), fzf, 7zip; fish as your login shell (`chsh` for a local account; `sss_override` for an AD account, which isn't in `/etc/passwd`); `~/.config/fish/conf.d/dev-setup.fish` starts mise and starship (managed: your own settings go in `config.fish`) |
 | `podman` | Podman + podman-compose; subuid/subgid range for the user via `usermod` if missing (AD/SSSD users never get one from `useradd`; local users already have one) |
 | `virt` | QEMU/KVM, libvirt, virt-manager, OVMF, swtpm; user added to `libvirt` + `kvm` |
 | `greetd` | greetd + Noctalia Greeter (its package configures greetd), pre-filled user/session, keyring PAM lines, passwordless theme sync; switches from GDM only with `--switch-dm` |
@@ -75,6 +76,9 @@ theme in Claude Code's `/theme` and, on the work laptop, Intune compliance.
 - mise-installed tools (including .NET and Claude Code) don't get Ubuntu's automatic security updates: run
   `mise upgrade`, and `mise prune` to remove old versions. Re-running the scripts doesn't upgrade them; it
   only adds tools missing from your global mise config.
+- On an AD account, fish as your login shell is an `sss_override` kept in SSSD's cache on this machine.
+  Deleting that cache (a common SSSD fix) puts you back on bash until `./install.sh --only shell` runs
+  again, and IT's `override_shell` in `/etc/sssd/sssd.conf`, if set, wins over it.
 - Some steps edit package conffiles (`/etc/pam.d/sudo` with `--with fingerprint`, greetd's PAM file).
   If a later update of that package changes the same file, unattended-upgrades holds it back for a
   manual `apt upgrade`, which asks whether to keep your version.

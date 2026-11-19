@@ -7,7 +7,7 @@
 source "$(dirname "$0")/lib/common.sh"
 
 # Every step in run order. Optional steps only run when named with --with (or --only).
-ALL_STEPS=(preflight base fonts hyprland browsers noctalia hypr-config theme mise podman virt greetd fingerprint umbriel)
+ALL_STEPS=(preflight base fonts hyprland browsers noctalia hypr-config theme mise shell podman virt greetd fingerprint umbriel)
 OPTIONAL_STEPS=(fingerprint umbriel)
 
 contains() {

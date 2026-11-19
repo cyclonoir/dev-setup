@@ -17,7 +17,7 @@ case "${1:-}" in
 esac
 
 section "Packages"
-for p in "${PKGS_BASE[@]}" "${PKGS_HYPRLAND[@]}" "${PKGS_BROWSERS[@]}" "${PKGS_NOCTALIA[@]}" "${PKGS_PODMAN[@]}" "${PKGS_VIRT[@]}" "${PKGS_GREETD[@]}"; do
+for p in "${PKGS_BASE[@]}" "${PKGS_SHELL[@]}" "${PKGS_HYPRLAND[@]}" "${PKGS_BROWSERS[@]}" "${PKGS_NOCTALIA[@]}" "${PKGS_PODMAN[@]}" "${PKGS_VIRT[@]}" "${PKGS_GREETD[@]}"; do
   check fail "installed: $p" pkg_installed "$p"
 done
 if [[ "$WORK_MACHINE" == 1 ]]; then
@@ -68,6 +68,11 @@ for tool in "${MISE_TOOLS[@]%%@*}"; do
   check fail "mise provides $tool" "$MISE" where "$tool"   # tool names, not commands (neovim, not nvim)
 done
 check fail "bash activates mise" grep -qF "mise activate bash" "$HOME/.bashrc"
+
+section "Shell"
+check fail "fish starts mise and starship: $FISH_DROPIN" test -f "$FISH_DROPIN"
+check fail "bat link exists" test -x "$HOME/.local/bin/bat"
+check fail "login shell is $LOGIN_SHELL (else ./install.sh --only shell)" test "$(login_shell)" = "$LOGIN_SHELL"
 
 section "Podman (rootless)"
 check fail "/etc/subuid range for $DEV_USER" subid_has_range /etc/subuid

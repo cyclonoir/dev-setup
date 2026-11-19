@@ -4,7 +4,7 @@
 # change other than apt-get update fails the test). The desktop session, greetd switching and KVM
 # can't be tested this way; use a VM or the laptop for those.
 #
-# Usage: tests/container-test.sh [steps]   (default: base,fonts,hyprland,browsers,noctalia,theme,mise,podman,virt)
+# Usage: tests/container-test.sh [steps]   (default: base,fonts,hyprland,browsers,noctalia,theme,mise,shell,podman,virt)
 #        WORK_FLAG= tests/container-test.sh [steps]   (personal path: no --work, so no Edge)
 # By default it passes --work to test the work-machine path (Edge); the IT checks just warn here.
 # Needs Docker or Podman; run with sudo if your user can't reach the Docker socket.
@@ -16,7 +16,7 @@ engine=${ENGINE:-$(command -v podman || command -v docker || true)}
 [[ -n "$engine" ]] || { echo "Docker or Podman is required." >&2; exit 1; }
 
 repo=$(cd "$(dirname "$0")/.." && pwd)
-steps=${1:-base,fonts,hyprland,browsers,noctalia,theme,mise,podman,virt}
+steps=${1:-base,fonts,hyprland,browsers,noctalia,theme,mise,shell,podman,virt}
 work_flag=${WORK_FLAG---work}
 stamp=$(date +%Y%m%d-%H%M%S)
 log_dir="$repo/tests/logs"

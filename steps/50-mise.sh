@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Step: mise for per-user, per-project dev tools (Neovim, Node, Go, .NET, GitHub CLI, Claude Code).
+# Step: mise for per-user, per-project dev tools (Neovim, Node, Go, .NET, GitHub CLI, Claude Code,
+# chezmoi, tree-sitter, CSharpier, uv, atuin, vivid).
 
 # shellcheck source=../lib/common.sh
 source "$(dirname "$0")/../lib/common.sh"
