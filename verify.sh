@@ -74,6 +74,14 @@ check fail "fish starts mise and starship: $FISH_DROPIN" test -f "$FISH_DROPIN"
 check fail "bat link exists" test -x "$HOME/.local/bin/bat"
 check fail "login shell is $LOGIN_SHELL (else ./install.sh --only shell)" test "$(login_shell)" = "$LOGIN_SHELL"
 
+section "Dotfiles"
+check fail "chezmoi source: $DOTFILES_SOURCE" test -d "$DOTFILES_SOURCE/.git"
+check fail "age key present (written by the first apply)" test -f "$AGE_KEY"
+check fail "dotfiles origin is $DOTFILES_REPO_SSH" test "$(git -C "$DOTFILES_SOURCE" remote get-url origin 2>/dev/null)" = "$DOTFILES_REPO_SSH"
+check fail "personal SSH key is private (600)" test "$(stat -c %a "$HOME/.ssh/id_github_personal" 2>/dev/null)" = 600
+check warn "no local changes chezmoi would overwrite (chezmoi status is empty)" \
+  test -z "$("$MISE" exec -- chezmoi status 2>&1)"
+
 section "Podman (rootless)"
 check fail "/etc/subuid range for $DEV_USER" subid_has_range /etc/subuid
 check fail "/etc/subgid range for $DEV_USER" subid_has_range /etc/subgid
@@ -122,11 +130,13 @@ cat <<'EOF'
   - Browser screen sharing works in a test video call
   - Windows VM has network and is reachable over RDP
   - With --with fingerprint: a finger unlocks the lock screen and approves sudo
+  - ssh -T git@personal.github.com greets your personal GitHub account
 EOF
 if [[ "$WORK_MACHINE" == 1 ]]; then
   cat <<'EOF'
   - FortiClient VPN connects from the Hyprland session
   - Intune app still shows Compliant
+  - ssh -T git@work.github.com greets your work GitHub account; ssh -T git@ssh.dev.azure.com authenticates
 EOF
 fi
 

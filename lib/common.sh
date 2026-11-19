@@ -69,6 +69,13 @@ MISE_INSTALLER_URL="https://mise.run"
 # fish loads conf.d before config.fish, so this file sets up mise and starship and config.fish stays yours.
 FISH_DROPIN="$HOME/.config/fish/conf.d/dev-setup.fish"
 LOGIN_SHELL="/usr/bin/fish"
+# Your chezmoi dotfiles: cloned over HTTPS (the repo is public), then pushed and pulled over SSH through
+# the personal.github.com host that the repo's own SSH config defines.
+DOTFILES_REPO_HTTPS="https://github.com/cyclonoir/dotfiles_chezmoi.git"
+DOTFILES_REPO_SSH="git@personal.github.com:cyclonoir/dotfiles_chezmoi.git"
+DOTFILES_SOURCE="$HOME/.local/share/chezmoi"
+# The age identity that decrypts the repo's encrypted files; the repo writes it on the first apply.
+AGE_KEY="$HOME/.config/chezmoi/key.txt"
 HYPR_HELPERS=(dev-hypr-keybinds dev-hypr-pop dev-hypr-gaps dev-hypr-zoom)
 LOGIND_POWER_KEY_CONF="/etc/systemd/logind.conf.d/10-dev-setup-power-key.conf"
 HYPR_DIR="$HOME/.config/hypr"

@@ -6,6 +6,7 @@
 #
 # Usage: tests/container-test.sh [steps]   (default: base,fonts,hyprland,browsers,noctalia,theme,mise,shell,podman,virt)
 #        WORK_FLAG= tests/container-test.sh [steps]   (personal path: no --work, so no Edge)
+# The dotfiles step isn't in the default list: its first run asks for the age passphrase.
 # By default it passes --work to test the work-machine path (Edge); the IT checks just warn here.
 # Needs Docker or Podman; run with sudo if your user can't reach the Docker socket.
 # Console output and the container's install.log are saved under tests/logs/.
